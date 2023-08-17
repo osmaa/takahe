@@ -166,11 +166,11 @@ class FanOutStates(StateGraph):
                 # Send it to the remote inbox
                 try:
                     if interaction.type == interaction.Types.vote:
-                        body = interaction.to_ap()
+                        body = interaction.to_create_ap()
                     elif interaction.type == interaction.Types.pin:
                         body = interaction.to_add_ap()
                     else:
-                        body = interaction.to_create_ap()
+                        body = interaction.to_ap()
                     interaction.identity.signed_request(
                         method="post",
                         uri=(
@@ -242,6 +242,10 @@ class FanOutStates(StateGraph):
                 except httpx.RequestError:
                     return
 
+            # Handle sending identity moved to remote
+            case (FanOut.Types.identity_moved, False):
+                raise NotImplementedError()
+
             # Sending identity edited/deleted to local is a no-op
             case (FanOut.Types.identity_edited, True):
                 pass
@@ -277,6 +281,7 @@ class FanOut(StatorModel):
         identity_edited = "identity_edited"
         identity_deleted = "identity_deleted"
         identity_created = "identity_created"
+        identity_moved = "identity_moved"
 
     state = StateField(FanOutStates)
 
