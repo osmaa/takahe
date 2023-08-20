@@ -18,6 +18,7 @@ from api.views import (
     push,
     search,
     statuses,
+    suggestions,
     tags,
     timelines,
     trends,
@@ -57,6 +58,8 @@ urlpatterns = [
     path("v1/filters", filters.list_filters),
     # Follow requests
     path("v1/follow_requests", follow_requests.follow_requests),
+    path("v1/follow_requests/<id>/authorize", follow_requests.accept_follow_request),
+    path("v1/follow_requests/<id>/reject", follow_requests.reject_follow_request),
     # Instance
     path("v1/instance", instance.instance_info_v1),
     path("v1/instance/activity", instance.activity),
@@ -128,4 +131,6 @@ urlpatterns = [
     path("v1/trends/tags", trends.trends_tags),
     path("v1/trends/statuses", trends.trends_statuses),
     path("v1/trends/links", trends.trends_links),
+    # Suggestions
+    path("v2/suggestions", suggestions.suggested_users),
 ]
