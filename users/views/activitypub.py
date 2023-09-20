@@ -140,6 +140,10 @@ class Inbox(View):
         # Find the Identity by the actor on the incoming item
         # This ensures that the signature used for the headers matches the actor
         # described in the payload.
+        if "actor" not in document:
+            exceptions.capture_message("Inbox error: unspecified actor")
+            return HttpResponseBadRequest("Unspecified actor")
+
         identity = Identity.by_actor_uri(document["actor"], create=True, transient=True)
         if (
             document["type"] == "Delete"
