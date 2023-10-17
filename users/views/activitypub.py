@@ -1,4 +1,5 @@
 import json
+import logging
 
 from django.conf import settings
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
@@ -9,7 +10,6 @@ from django.views.generic import View
 
 from activities.models import Post
 from activities.services import TimelineService
-from core import exceptions
 from core.decorators import cache_page
 from core.ld import canonicalise
 from core.models import Config
@@ -141,7 +141,7 @@ class Inbox(View):
         # This ensures that the signature used for the headers matches the actor
         # described in the payload.
         if "actor" not in document:
-            exceptions.capture_message("Inbox error: unspecified actor")
+            logging.warning("Inbox error: unspecified actor")
             return HttpResponseBadRequest("Unspecified actor")
 
         identity = Identity.by_actor_uri(document["actor"], create=True, transient=True)
@@ -158,23 +158,19 @@ class Inbox(View):
             try:
                 identity.fetch_actor()
             except TryAgainLater:
-                exceptions.capture_message(
+                logging.warning(
                     f"Inbox error: timed out fetching actor {document['actor']}"
                 )
                 return HttpResponse(status=504)
 
         if not identity.public_key:
-            exceptions.capture_message(
-                f"Inbox error: cannot fetch actor {document['actor']}"
-            )
+            logging.warning(f"Inbox error: cannot fetch actor {document['actor']}")
             return HttpResponseBadRequest("Cannot retrieve actor")
 
         # See if it's from a blocked user or domain
         if identity.blocked or identity.domain.recursively_blocked():
             # I love to lie! Throw it away!
-            exceptions.capture_message(
-                f"Inbox: Discarded message from {identity.actor_uri}"
-            )
+            logging.warning(f"Inbox: Discarded message from {identity.actor_uri}")
             return HttpResponse(status=202)
 
         # If there's a "signature" payload, verify against that
@@ -182,12 +178,10 @@ class Inbox(View):
             try:
                 LDSignature.verify_signature(document, identity.public_key)
             except VerificationFormatError as e:
-                exceptions.capture_message(
-                    f"Inbox error: Bad LD signature format: {e.args[0]}"
-                )
+                logging.warning(f"Inbox error: Bad LD signature format: {e.args[0]}")
                 return HttpResponseBadRequest(e.args[0])
             except VerificationError:
-                exceptions.capture_message("Inbox error: Bad LD signature")
+                logging.warning("Inbox error: Bad LD signature")
                 return HttpResponseUnauthorized("Bad signature")
 
         # Otherwise, verify against the header (assuming it's the same actor)
@@ -198,12 +192,10 @@ class Inbox(View):
                     identity.public_key,
                 )
             except VerificationFormatError as e:
-                exceptions.capture_message(
-                    f"Inbox error: Bad HTTP signature format: {e.args[0]}"
-                )
+                logging.warning(f"Inbox error: Bad HTTP signature format: {e.args[0]}")
                 return HttpResponseBadRequest(e.args[0])
             except VerificationError:
-                exceptions.capture_message("Inbox error: Bad HTTP signature")
+                logging.warning("Inbox error: Bad HTTP signature")
                 return HttpResponseUnauthorized("Bad signature")
 
         # Don't allow injection of internal messages
