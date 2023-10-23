@@ -6,6 +6,7 @@ from api.views import (
     announcements,
     apps,
     bookmarks,
+    directory,
     emoji,
     filters,
     follow_requests,
@@ -51,6 +52,8 @@ urlpatterns = [
     path("v1/apps/verify_credentials", apps.verify_credentials),
     # Bookmarks
     path("v1/bookmarks", bookmarks.bookmarks),
+    # Directory (unimplemented)
+    path("v1/directory", directory.directory),
     # Emoji
     path("v1/custom_emojis", emoji.emojis),
     # Filters
