@@ -760,6 +760,10 @@ class Identity(StatorModel):
                     )
                 return None, None
 
+        if response.headers["Content-Type"] != "application/json":
+            # returning HTML, their non-compliance is not our problem
+            return None, None
+
         try:
             data = response.json()
         except ValueError:

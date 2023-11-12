@@ -223,12 +223,12 @@ class Domain(StatorModel):
                     )
                 return None
 
+            if response.headers["Content-Type"] != "application/json":
+                # returning HTML, their non-compliance is not our problem
+                return None
+
             try:
-                if response.headers["Content-Type"] != "application/json":
-                    info = NodeInfo(**response.json())
-                else:
-                    # returning with HTML, their non-compliance is not our problem
-                    info = None
+                info = NodeInfo(**response.json())
             except (json.JSONDecodeError, pydantic.ValidationError) as ex:
                 logger.warning(
                     "Client error decoding nodeinfo: %s %s",
