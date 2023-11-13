@@ -1,5 +1,6 @@
 import datetime
 
+import markdown_it
 from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
@@ -27,7 +28,7 @@ def instance_info_v1(request):
         "uri": request.headers.get("host", settings.SETUP.MAIN_DOMAIN),
         "title": Config.system.site_name,
         "short_description": "",
-        "description": "",
+        "description": markdown_it.MarkdownIt().render(Config.system.site_about),
         "email": "",
         "version": f"takahe/{__version__}",
         "urls": {},
@@ -64,7 +65,7 @@ def instance_info_v1(request):
             },
         },
         "contact_account": None,
-        "rules": [],
+        "rules": [Config.system.policy_rules],
     }
 
 
@@ -85,7 +86,7 @@ def instance_info_v2(request) -> dict:
         "title": Config.system.site_name,
         "version": f"takahe/{__version__}",
         "source_url": "https://github.com/jointakahe/takahe",
-        "description": "",
+        "description": markdown_it.MarkdownIt().render(Config.system.site_about),
         "email": "",
         "urls": {},
         "usage": {
@@ -138,6 +139,21 @@ def instance_info_v2(request) -> dict:
             "account": schemas.Account.from_identity(admin_identity),
         },
         "rules": [],
+    }
+
+
+@api_view.get
+def extended_description(request) -> dict:
+    current_domain = Domain.get_domain(
+        request.headers.get("host", settings.SETUP.MAIN_DOMAIN)
+    )
+    if current_domain is None or not current_domain.local:
+        current_domain = Domain.get_domain(settings.SETUP.MAIN_DOMAIN)
+    if current_domain is None:
+        raise ValueError("No domain set up for MAIN_DOMAIN")
+    return {
+        "updated_at": timezone.now(),
+        "content": markdown_it.MarkdownIt().render(Config.system.site_about),
     }
 
 

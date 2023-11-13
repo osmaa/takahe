@@ -68,6 +68,7 @@ urlpatterns = [
     path("v1/instance/activity", instance.activity),
     path("v1/instance/peers", instance.peers),
     path("v2/instance", instance.instance_info_v2),
+    path("v1/instance/extended_description", instance.extended_description),
     # Lists
     path("v1/lists", lists.get_lists),
     # Media
