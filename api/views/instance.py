@@ -65,7 +65,12 @@ def instance_info_v1(request):
             },
         },
         "contact_account": None,
-        "rules": [Config.system.policy_rules],
+        "rules": [
+            {
+                "id": 1,
+                "text": markdown_it.MarkdownIt().render(Config.system.policy_rules),
+            }
+        ],
     }
 
 
@@ -138,7 +143,12 @@ def instance_info_v2(request) -> dict:
             "email": "",
             "account": schemas.Account.from_identity(admin_identity),
         },
-        "rules": [],
+        "rules": [
+            {
+                "id": 1,
+                "text": markdown_it.MarkdownIt().render(Config.system.policy_rules),
+            }
+        ],
     }
 
 
