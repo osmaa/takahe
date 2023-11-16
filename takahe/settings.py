@@ -143,13 +143,13 @@ class Settings(BaseSettings):
     CACHES_DEFAULT: CacheBackendUrl | None = None
 
     # How long to wait, in days, until remote posts/profiles are pruned from
-    # our database if nobody local has interacted with them. Must be in rough
-    # multiples of two weeks. Set to zero to disable.
-    REMOTE_PRUNE_HORIZON: int = 0
+    # our database if nobody local has interacted with them.
+    # Set to zero to disable.
+    REMOTE_PRUNE_HORIZON: int = 90
 
     # Stator tuning
-    STATOR_CONCURRENCY: int = 50
-    STATOR_CONCURRENCY_PER_MODEL: int = 15
+    STATOR_CONCURRENCY: int = 20
+    STATOR_CONCURRENCY_PER_MODEL: int = 4
 
     # If user migration is allowed (off by default until outbound is done)
     ALLOW_USER_MIGRATION: bool = False
