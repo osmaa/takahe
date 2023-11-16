@@ -1,9 +1,10 @@
 0.10
 ====
 
-*Released: Not Yet Released*
+*Released: 2023/11/12*
 
-This release is a polish release that is prepping us for the road to 1.0.
+This release is a polish release that mostly focuses on performance, stability
+and federation compatibility.
 
 This release's major changes:
 
@@ -12,12 +13,6 @@ This release's major changes:
   nature removed, as this both reduces deadlocks and improves performance in
   most situations (the context switching was costing more than the gains from
   talking to other servers asynchronously).
-
-* Old remote posts are now automatically pruned out of the database after a
-  configurable horizon time, defaulting to 90 days. Posts from local users and
-  posts that have been interacted with (liked, boosted, pinned) by local users
-  are never deleted. You can change the deletion horizon with the
-  ``TAKAHE_REMOTE_PRUNE_HORIZON`` setting.
 
 Minor changes also include:
 
@@ -40,6 +35,22 @@ Minor changes also include:
 * SMTP servers that don't require authentication are now supported.
 
 * Python 3.11 is now the minimum version required; this will not affect you at
+  all if you run Takahē via our docker image, as is recommended.
+
+A remote post pruning system, to shrink the database of old data that was no
+longer needed, was in the development version but has been removed in this
+release due to the extra database load it caused. An alternative approach to
+this will hopefully land in a future release.
+
+* Python 3.11 is now the minimum version required; this will not affect you at
+  all if you run Takahē via our docker image, as is recommended.
+
+A remote post pruning system, to shrink the database of old data that was no
+longer needed, was in the development version but has been removed in this
+release due to the extra database load it caused. An alternative approach to
+this will hopefully land in a future release.
+
+* Python 3.11 is now the minimum version required; this will not affect you at
   all if you run Takahē via a docker image, as is recommended.
 
 If you'd like to help with code, design, or other areas, see
@@ -51,17 +62,6 @@ or use the image name ``jointakahe/takahe:0.10``.
 
 Upgrade Notes
 -------------
-
-Remote Pruning
-~~~~~~~~~~~~~~
-
-Post pruning is now in and comes *enabled by default*, as it is not directly
-destructive (it will only delete content that has not been interacted with
-locally and which can be re-fetched).
-
-Nevertheless, if you want to avoid post deletion triggering on your server at
-all, you should set the ``TAKAHE_REMOTE_PRUNE_HORIZON`` environment variable to
-``0``.
 
 Migrations
 ~~~~~~~~~~
