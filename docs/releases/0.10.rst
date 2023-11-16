@@ -44,17 +44,6 @@ that was no longer needed, was in the development version but has been switched
 to a set of manual commands as of 0.10.1 - you can read more below or in
 :doc:`/tuning`.
 
-* Python 3.11 is now the minimum version required; this will not affect you at
-  all if you run Takahē via our docker image, as is recommended.
-
-A remote post pruning system, to shrink the database of old data that was no
-longer needed, was in the development version but has been removed in this
-release due to the extra database load it caused. An alternative approach to
-this will hopefully land in a future release.
-
-* Python 3.11 is now the minimum version required; this will not affect you at
-  all if you run Takahē via a docker image, as is recommended.
-
 If you'd like to help with code, design, or other areas, see
 :doc:`/contributing` to see how to get in touch.
 
