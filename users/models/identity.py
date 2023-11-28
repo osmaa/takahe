@@ -14,6 +14,7 @@ from lxml import etree
 
 from core.exceptions import ActorMismatchError
 from core.html import ContentRenderer, FediverseHtmlParser
+from core.json import json_from_response
 from core.ld import (
     canonicalise,
     format_ld_date,
@@ -138,7 +139,7 @@ class IdentityStates(StateGraph):
 
     @classmethod
     def handle_updated(cls, instance: "Identity"):
-        if instance.state_age > Config.system.identity_max_age:
+        if not instance.local and instance.state_age > Config.system.identity_max_age:
             return cls.outdated
 
 
@@ -399,6 +400,8 @@ class Identity(StatorModel):
             domain = domain.domain
         else:
             domain = domain.lower()
+            domain_instance = Domain.get_domain(domain)
+            local = domain_instance.local if domain_instance else local
 
         with transaction.atomic():
             try:
@@ -882,8 +885,11 @@ class Identity(StatorModel):
                     "Client error fetching actor: %d %s", status_code, self.actor_uri
                 )
             return False
+        json_data = json_from_response(response)
+        if not json_data:
+            return False
         try:
-            document = canonicalise(response.json(), include_security=True)
+            document = canonicalise(json_data, include_security=True)
         except ValueError:
             # servers with empty or invalid responses are inevitable
             logger.info(

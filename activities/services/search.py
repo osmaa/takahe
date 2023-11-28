@@ -1,6 +1,7 @@
 import httpx
 
 from activities.models import Hashtag, Post
+from core.json import json_from_response
 from core.ld import canonicalise
 from users.models import Domain, Identity, IdentityStates
 from users.models.system_actor import SystemActor
@@ -81,10 +82,12 @@ class SearchService:
             return None
         if response.status_code >= 400:
             return None
-        content_type = response.headers.get("Content-Type", "").lower()
-        if content_type not in ["application/json", "application/ld+json"]:
+
+        json_data = json_from_response(response)
+        if not json_data:
             return None
-        document = canonicalise(response.json(), include_security=True)
+
+        document = canonicalise(json_data, include_security=True)
         type = document.get("type", "unknown").lower()
 
         # Is it an identity?
