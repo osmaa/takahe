@@ -906,6 +906,8 @@ class Post(StatorModel):
             if not post.content and post.summary:
                 post.content = post.summary
                 post.summary = None
+            if not post.content:
+                post.content = ""
             post.sensitive = data.get("sensitive", False)
             post.published = parse_ld_date(data.get("published"))
             post.edited = parse_ld_date(data.get("updated"))
