@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class FollowStates(StateGraph):
     unrequested = State(try_interval=600)
     pending_approval = State(externally_progressed=True)
-    accepting = State(try_interval=24 * 60 * 60)
+    accepting = State(try_interval=600)
     rejecting = State(try_interval=24 * 60 * 60)
     accepted = State(externally_progressed=True)
     undone = State(try_interval=24 * 60 * 60)
@@ -81,7 +81,9 @@ class FollowStates(StateGraph):
             except httpx.RequestError:
                 return
             return cls.pending_approval
-        # local/remote follow local, check manually_approve
+        # local/remote follow local, check deleted & manually_approve
+        if instance.target.deleted:
+            return cls.rejecting
         if instance.target.manually_approves_followers:
             from activities.models import TimelineEvent
 
@@ -92,6 +94,9 @@ class FollowStates(StateGraph):
     @classmethod
     def handle_accepting(cls, instance: "Follow"):
         if not instance.source.local:
+            # Don't send Accept if remote identity wasn't fetch yet
+            if not instance.source.inbox_uri:
+                return
             # send an Accept object to the source server
             try:
                 instance.target.signed_request(
@@ -277,7 +282,7 @@ class Follow(StatorModel):
         """
         return {
             "type": "Accept",
-            "id": self.uri + "#accept",
+            "id": f"{self.target.actor_uri}follow/{self.id}/#accept",
             "actor": self.target.actor_uri,
             "object": self.to_ap(),
         }
@@ -288,7 +293,7 @@ class Follow(StatorModel):
         """
         return {
             "type": "Reject",
-            "id": self.uri + "#reject",
+            "id": f"{self.target.actor_uri}follow/{self.id}/#reject",
             "actor": self.target.actor_uri,
             "object": self.to_ap(),
         }
