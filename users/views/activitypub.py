@@ -1,6 +1,6 @@
 import json
 import logging
-from urllib.parse import urldefrag, urlparse
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
@@ -14,12 +14,7 @@ from activities.services import TimelineService
 from core.decorators import cache_page
 from core.ld import canonicalise
 from core.models import Config
-from core.signatures import (
-    HttpSignature,
-    LDSignature,
-    VerificationError,
-    VerificationFormatError,
-)
+from core.signatures import HttpSignature, VerificationError, VerificationFormatError
 from core.views import StaticContentView
 from takahe import __version__
 from users.models import Identity, InboxMessage, SystemActor
@@ -215,42 +210,8 @@ class Inbox(View):
                 logger.warning("Inbox error: Bad HTTP signature from %s", identity)
                 return HttpResponseUnauthorized("Bad signature")
 
-        # Mastodon advices not implementing LD Signatures, but
-        # they're widely deployed today. Validate it if one exists.
-        # https://docs.joinmastodon.org/spec/security/#ld
-        if "signature" in document:
-            try:
-                # signatures are identified by the signature block
-                creator = urldefrag(document["signature"]["creator"]).url
-                creator_identity = Identity.by_actor_uri(
-                    creator, create=True, transient=True
-                )
-                if not creator_identity.public_key:
-                    logger.info("Inbox: New actor, no key available: %s", creator)
-                    # if we can't verify it, we don't keep it
-                    document.pop("signature")
-                else:
-                    LDSignature.verify_signature(document, creator_identity.public_key)
-                    logger.debug(
-                        "Inbox: %s from %s has good LD signature",
-                        document["type"],
-                        creator_identity,
-                    )
-            except VerificationFormatError as e:
-                logger.warning("Inbox error: Bad LD signature format: %s", e.args[0])
-                return HttpResponseBadRequest(e.args[0])
-            except VerificationError:
-                # An invalid LD Signature might also indicate nothing but
-                # a syntactical difference between implementations.
-                # Strip it out if we can't verify it.
-                if "signature" in document:
-                    document.pop("signature")
-                logger.info(
-                    "Inbox: Stripping invalid LD signature from %s %s",
-                    creator_identity,
-                    document["id"],
-                )
-
+        # LD Signatures will be verified out of band in InboxMessage because
+        # they might require fetching a remote actor - potentially a slow op.
         if not ("signature" in request or "signature" in document):
             logger.debug(
                 "Inbox: %s from %s is unauthenticated. That's OK.",

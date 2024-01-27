@@ -1,8 +1,13 @@
+import logging
+
 from django.db import models
 from pyld.jsonld import JsonLdError
 
 from core.exceptions import ActivityPubError
+from core.signatures import LDSignature, VerificationError, VerificationFormatError
 from stator.models import State, StateField, StateGraph, StatorModel
+
+logger = logging.getLogger(__name__)
 
 
 class InboxMessageStates(StateGraph):
@@ -18,6 +23,23 @@ class InboxMessageStates(StateGraph):
         from activities.models import Post, PostInteraction, TimelineEvent
         from users.models import Block, Follow, Identity, Report
         from users.services import IdentityService
+
+        # LD Signature verification performed out-of-band because it may
+        # require fetching new actor from remote server, an action best
+        # performed by the background worker rather than the HTTP server.
+        try:
+            instance.verify_ld_signature()
+        except VerificationFormatError as e:
+            logger.warning(
+                "Message rejected due to bad LD signature format: %s", e.args[0]
+            )
+            return cls.errored
+        except VerificationError as e:
+            logger.info(
+                "Message detected with invalid LD signature from %s %s",
+                instance.message_actor(),
+                e,
+            )
 
         try:
             match instance.message_type:
@@ -208,3 +230,43 @@ class InboxMessage(StatorModel):
     def message_object_has_content(self):
         object = self.message.get("object", {})
         return "content" in object or "contentMap" in object
+
+    def verify_ld_signature(self):
+        # Mastodon advices not implementing LD Signatures, but
+        # they're widely deployed today. Validate it if one exists.
+        # https://docs.joinmastodon.org/spec/security/#ld
+        from urllib.parse import urldefrag
+
+        from users.models import Identity
+
+        document = self.message
+        if "signature" not in document:
+            return
+
+        try:
+            creator = urldefrag(document["signature"]["creator"]).url
+            creator_identity = Identity.by_actor_uri(
+                creator, create=True, transient=True
+            )
+            if creator_identity.public_key is None:
+                creator_identity.fetch_actor()
+
+            if creator_identity.public_key is None:
+                raise VerificationError(
+                    "Inbox: Could not fetch actor to verify message signature: %s",
+                    creator,
+                )
+
+            LDSignature.verify_signature(document, creator_identity.public_key)
+            logger.debug(
+                "Inbox: %s from %s has good LD signature",
+                document["type"],
+                creator,
+            )
+            return creator_identity
+        except VerificationError:
+            # An invalid LD Signature might also indicate nothing but
+            # a syntactical difference between implementations, so we strip
+            # it out and pretend one didn't exist
+            document.pop("signature")
+            raise
